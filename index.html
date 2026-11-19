@@ -625,13 +625,61 @@ function updatePlayer(){
 
 function updatePet(){
 
-    pet.x +=
-    (player.x-40-pet.x)
-    *0.05;
+    let target=null;
+    let nearest=999999;
 
-    pet.y +=
-    (player.y-pet.y)
-    *0.05;
+    monsters.forEach(mon=>{
+
+        const d=Math.hypot(
+
+            mon.x-pet.x,
+
+            mon.y-pet.y
+
+        );
+
+        if(
+            d < nearest &&
+            d < 200
+        ){
+
+            nearest=d;
+
+            target=mon;
+        }
+
+    });
+
+    if(target){
+
+        const dx=
+        target.x-pet.x;
+
+        const dy=
+        target.y-pet.y;
+
+        const len=
+        Math.hypot(dx,dy);
+
+        if(len>0){
+
+            pet.x +=
+            dx/len*3;
+
+            pet.y +=
+            dy/len*3;
+        }
+
+    }else{
+
+        pet.x +=
+        (player.x-40-pet.x)
+        *0.05;
+
+        pet.y +=
+        (player.y-pet.y)
+        *0.05;
+    }
 }
 
 function updateMonsters(){
