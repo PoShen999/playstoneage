@@ -2,28 +2,65 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<title>石器之路 Prototype</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>石器之路 Roguelike</title>
 
 <style>
 
 body{
     margin:0;
     overflow:hidden;
-    background:#1e293b;
-    color:white;
+    background:#224433;
     font-family:Arial;
+    color:white;
+}
+
+canvas{
+    display:block;
 }
 
 #ui{
     position:absolute;
-    top:10px;
     left:10px;
-    z-index:100;
+    top:10px;
+    z-index:10;
 }
 
-canvas{
-    background:#355e3b;
-    display:block;
+#levelup{
+
+    display:none;
+
+    position:absolute;
+    inset:0;
+
+    background:rgba(0,0,0,.85);
+
+    z-index:100;
+
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+}
+
+#levelup h1{
+    margin-bottom:30px;
+}
+
+.talent{
+
+    width:320px;
+
+    margin:10px;
+
+    padding:15px;
+
+    font-size:20px;
+
+    cursor:pointer;
+
+    border:none;
+
+    border-radius:12px;
 }
 
 </style>
@@ -31,63 +68,153 @@ canvas{
 <body>
 
 <div id="ui">
+
     <div>LV <span id="level">1</span></div>
     <div>HP <span id="hp">100</span></div>
+    <div>ATK <span id="atk">15</span></div>
     <div>EXP <span id="exp">0</span>/100</div>
+
+</div>
+
+<div id="levelup">
+
+    <h1>🎉 升級！選擇天賦</h1>
+
+    <div id="choices"></div>
+
 </div>
 
 <canvas id="game"></canvas>
 
 <script>
 
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
+const canvas =
+document.getElementById("game");
+
+const ctx =
+canvas.getContext("2d");
 
 canvas.width=window.innerWidth;
 canvas.height=window.innerHeight;
 
 const keys={};
 
-let player={
+let paused=false;
+
+const player={
+
     x:400,
     y:300,
+
     r:18,
+
     hp:100,
     maxHp:100,
+
     atk:15,
+
     speed:4,
+
     exp:0,
+
     level:1,
-    lastAttack:0
+
+    lastAttack:0,
+
+    lifeSteal:0,
+
+    damageReduction:0
+
 };
 
-let pet={
-    x:360,
+const pet={
+
+    x:350,
     y:300,
+
     r:14,
+
     atk:10,
-    speed:3,
+
     lastAttack:0
 };
 
 const monsters=[];
 const damages=[];
 
+const talents=[
+
+{
+    name:"力量強化",
+    desc:"+5攻擊",
+    apply(){
+        player.atk+=5;
+    }
+},
+
+{
+    name:"生命強化",
+    desc:"+30生命",
+    apply(){
+        player.maxHp+=30;
+        player.hp+=30;
+    }
+},
+
+{
+    name:"疾風步",
+    desc:"+1速度",
+    apply(){
+        player.speed+=1;
+    }
+},
+
+{
+    name:"暴龍成長",
+    desc:"+5寵物攻擊",
+    apply(){
+        pet.atk+=5;
+    }
+},
+
+{
+    name:"吸血",
+    desc:"命中回血1",
+    apply(){
+        player.lifeSteal+=1;
+    }
+},
+
+{
+    name:"厚皮",
+    desc:"減傷10%",
+    apply(){
+        player.damageReduction+=0.1;
+    }
+}
+
+];
+
 function spawnMonster(){
 
     monsters.push({
-        x:Math.random()*canvas.width,
-        y:Math.random()*canvas.height,
-        r:16,
-        hp:40,
-        maxHp:40,
-        atk:5,
-        speed:1+Math.random()
-    });
 
+        x:Math.random()*canvas.width,
+
+        y:Math.random()*canvas.height,
+
+        r:16,
+
+        hp:40,
+
+        maxHp:40,
+
+        speed:1+Math.random()
+
+    });
 }
 
-for(let i=0;i<10;i++){
+for(let i=0;i<12;i++){
     spawnMonster();
 }
 
@@ -105,16 +232,96 @@ function dist(a,b){
         a.x-b.x,
         a.y-b.y
     );
-
 }
 
-function damageText(x,y,text,color){
+function dmg(x,y,text,color){
 
     damages.push({
-        x,y,
+        x,
+        y,
         text,
         color,
         life:40
+    });
+}
+
+function drawDamage(){
+
+    damages.forEach(d=>{
+
+        ctx.fillStyle=d.color;
+
+        ctx.fillText(
+            d.text,
+            d.x,
+            d.y
+        );
+
+        d.y-=1;
+        d.life--;
+    });
+
+    for(let i=damages.length-1;i>=0;i--){
+
+        if(damages[i].life<=0){
+
+            damages.splice(i,1);
+
+        }
+    }
+}
+
+function chooseTalent(){
+
+    paused=true;
+
+    let picks=[];
+
+    while(picks.length<3){
+
+        let t=
+        talents[
+            Math.floor(
+                Math.random()*talents.length
+            )
+        ];
+
+        if(!picks.includes(t))
+            picks.push(t);
+    }
+
+    const panel =
+    document.getElementById("levelup");
+
+    const choices =
+    document.getElementById("choices");
+
+    choices.innerHTML="";
+
+    panel.style.display="flex";
+
+    picks.forEach(t=>{
+
+        const btn =
+        document.createElement("button");
+
+        btn.className="talent";
+
+        btn.innerHTML=
+        "<b>"+t.name+"</b><br>"+t.desc;
+
+        btn.onclick=()=>{
+
+            t.apply();
+
+            panel.style.display="none";
+
+            paused=false;
+
+        };
+
+        choices.appendChild(btn);
+
     });
 
 }
@@ -122,12 +329,13 @@ function damageText(x,y,text,color){
 function levelUp(){
 
     player.level++;
-    player.exp=0;
 
-    player.maxHp+=20;
-    player.hp=player.maxHp;
+    player.exp-=100;
 
-    player.atk+=5;
+    player.hp=
+    player.maxHp;
+
+    chooseTalent();
 
 }
 
@@ -142,11 +350,8 @@ function updatePlayer(){
 
 function updatePet(){
 
-    let dx=player.x-50-pet.x;
-    let dy=player.y-pet.y;
-
-    pet.x+=dx*0.05;
-    pet.y+=dy*0.05;
+    pet.x += (player.x-40-pet.x)*0.05;
+    pet.y += (player.y-pet.y)*0.05;
 
 }
 
@@ -154,150 +359,169 @@ function updateMonsters(){
 
     monsters.forEach(mon=>{
 
-        let dx=player.x-mon.x;
-        let dy=player.y-mon.y;
+        const dx=
+        player.x-mon.x;
 
-        let len=Math.hypot(dx,dy);
+        const dy=
+        player.y-mon.y;
 
-        if(len>0){
+        const len=
+        Math.hypot(dx,dy);
 
-            mon.x+=dx/len*mon.speed;
-            mon.y+=dy/len*mon.speed;
+        mon.x += dx/len*mon.speed;
+        mon.y += dy/len*mon.speed;
 
-        }
+        const now =
+        Date.now();
 
-        let now=Date.now();
+        if(dist(player,mon)
+        <
+        player.r+mon.r){
 
-        if(dist(player,mon)<player.r+mon.r){
+            if(
+                now-player.lastAttack
+                >
+                500
+            ){
 
-            if(now-player.lastAttack>500){
+                mon.hp -= player.atk;
 
-                mon.hp-=player.atk;
+                if(player.lifeSteal){
 
-                damageText(
+                    player.hp +=
+                    player.lifeSteal;
+
+                    if(
+                        player.hp>
+                        player.maxHp
+                    ){
+                        player.hp=
+                        player.maxHp;
+                    }
+                }
+
+                dmg(
                     mon.x,
                     mon.y,
                     "-"+player.atk,
                     "yellow"
                 );
 
-                player.lastAttack=now;
-
+                player.lastAttack=
+                now;
             }
 
-            player.hp-=0.2;
+            let hurt=0.2;
 
+            hurt *=
+            (1-player.damageReduction);
+
+            player.hp-=hurt;
         }
 
-        if(dist(pet,mon)<pet.r+mon.r){
+        if(
+            dist(pet,mon)
+            <
+            pet.r+mon.r
+        ){
 
-            if(now-pet.lastAttack>700){
+            if(
+                now-pet.lastAttack
+                >
+                700
+            ){
 
                 mon.hp-=pet.atk;
 
-                damageText(
+                dmg(
                     mon.x,
                     mon.y,
                     "-"+pet.atk,
                     "cyan"
                 );
 
-                pet.lastAttack=now;
-
+                pet.lastAttack=
+                now;
             }
-
         }
 
     });
 
-    for(let i=monsters.length-1;i>=0;i--){
+    for(
+        let i=
+        monsters.length-1;
+        i>=0;
+        i--
+    ){
 
-        if(monsters[i].hp<=0){
+        if(
+            monsters[i].hp<=0
+        ){
 
             monsters.splice(i,1);
 
-            player.exp+=20;
+            player.exp += 20;
 
             spawnMonster();
 
-            if(player.exp>=100){
+            if(
+                player.exp>=100
+            ){
 
                 levelUp();
-
             }
-
         }
-
     }
-
 }
 
-function updateDamageTexts(){
+function drawCircle(x,y,r,color){
 
-    for(let i=damages.length-1;i>=0;i--){
-
-        damages[i].y-=1;
-        damages[i].life--;
-
-        if(damages[i].life<=0){
-
-            damages.splice(i,1);
-
-        }
-
-    }
-
-}
-
-function drawPlayer(){
-
-    ctx.fillStyle="#fbbf24";
+    ctx.fillStyle=color;
 
     ctx.beginPath();
+
     ctx.arc(
+        x,y,r,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+}
+
+function render(){
+
+    ctx.clearRect(
+        0,0,
+        canvas.width,
+        canvas.height
+    );
+
+    drawCircle(
         player.x,
         player.y,
         player.r,
-        0,
-        Math.PI*2
+        "#FFD700"
     );
-    ctx.fill();
 
-}
-
-function drawPet(){
-
-    ctx.fillStyle="#ef4444";
-
-    ctx.beginPath();
-    ctx.arc(
+    drawCircle(
         pet.x,
         pet.y,
         pet.r,
-        0,
-        Math.PI*2
+        "#FF4444"
     );
-    ctx.fill();
-
-}
-
-function drawMonsters(){
 
     monsters.forEach(mon=>{
 
-        ctx.fillStyle="#111827";
-
-        ctx.beginPath();
-        ctx.arc(
+        drawCircle(
             mon.x,
             mon.y,
             mon.r,
-            0,
-            Math.PI*2
+            "#222"
         );
-        ctx.fill();
 
         ctx.fillStyle="red";
+
         ctx.fillRect(
             mon.x-20,
             mon.y-25,
@@ -313,82 +537,65 @@ function drawMonsters(){
             40*(mon.hp/mon.maxHp),
             4
         );
-
     });
 
-}
-
-function drawDamageTexts(){
-
-    damages.forEach(d=>{
-
-        ctx.fillStyle=d.color;
-
-        ctx.fillText(
-            d.text,
-            d.x,
-            d.y
-        );
-
-    });
+    drawDamage();
 
 }
 
-function gameOver(){
+function ui(){
 
-    ctx.fillStyle="white";
+    hp.textContent =
+    Math.floor(player.hp);
 
-    ctx.font="60px Arial";
+    exp.textContent=
+    player.exp;
 
-    ctx.fillText(
-        "GAME OVER",
-        canvas.width/2-180,
-        canvas.height/2
-    );
+    level.textContent=
+    player.level;
 
+    atk.textContent=
+    player.atk;
 }
 
-function updateUI(){
-
-    hp.innerText=Math.floor(player.hp);
-    exp.innerText=player.exp;
-    level.innerText=player.level;
-
-}
-
-function loop(){
-
-    ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
+function gameLoop(){
 
     if(player.hp<=0){
 
-        gameOver();
+        ctx.fillStyle="white";
+
+        ctx.font="60px Arial";
+
+        ctx.fillText(
+            "GAME OVER",
+            canvas.width/2-200,
+            canvas.height/2
+        );
+
         return;
+    }
+
+    if(!paused){
+
+        updatePlayer();
+
+        updatePet();
+
+        updateMonsters();
 
     }
 
-    updatePlayer();
-    updatePet();
-    updateMonsters();
-    updateDamageTexts();
+    render();
 
-    drawPlayer();
-    drawPet();
-    drawMonsters();
-    drawDamageTexts();
+    ui();
 
-    updateUI();
-
-    requestAnimationFrame(loop);
+    requestAnimationFrame(
+        gameLoop
+    );
 
 }
 
-loop();
+gameLoop();
 
 </script>
 
