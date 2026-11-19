@@ -1,17 +1,24 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>石器之路 Roguelike v0.1</title>
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1">
+
+<title>
+StoneAge Roguelike v0.15
+</title>
 
 <style>
+
 body{
     margin:0;
     overflow:hidden;
     background:#224433;
-    font-family:Arial;
-    color:white;
+    font-family:Arial,sans-serif;
 }
 
 canvas{
@@ -19,15 +26,25 @@ canvas{
 }
 
 #ui{
+
     position:absolute;
-    left:10px;
-    top:10px;
+
+    top:20px;
+    left:20px;
+
     z-index:10;
-    font-size:20px;
+
+    color:white;
+
+    font-size:28px;
+
+    text-shadow:
+    2px 2px 4px #000;
 }
 
 #levelup,
-#pauseMenu{
+#pauseMenu,
+#gameOverMenu{
 
     display:none;
 
@@ -35,22 +52,30 @@ canvas{
 
     inset:0;
 
-    background:rgba(0,0,0,.85);
+    background:
+    rgba(0,0,0,.85);
 
     z-index:100;
 
     justify-content:center;
+
     align-items:center;
+
     flex-direction:column;
 }
 
 #levelup h1,
-#pauseMenu h1{
-    margin-bottom:25px;
+#pauseMenu h1,
+#gameOverMenu h1{
+
+    color:white;
+
+    margin-bottom:30px;
 }
 
 .talent,
-#pauseMenu button{
+#pauseMenu button,
+#gameOverMenu button{
 
     width:320px;
 
@@ -58,55 +83,97 @@ canvas{
 
     padding:15px;
 
+    border:none;
+
+    border-radius:12px;
+
     font-size:20px;
 
     cursor:pointer;
-
-    border:none;
-
-    border-radius:10px;
 }
+
 </style>
 
 </head>
+
 <body>
 
 <div id="ui">
 
-    <div>LV <span id="level">1</span></div>
-    <div>HP <span id="hp">100</span></div>
-    <div>ATK <span id="atk">15</span></div>
-    <div>EXP <span id="exp">0</span>/100</div>
+<div>
+LV <span id="level">1</span>
+</div>
+
+<div>
+HP <span id="hp">100</span>
+</div>
+
+<div>
+ATK <span id="atk">15</span>
+</div>
+
+<div>
+XP <span id="exp">0</span>/100
+</div>
 
 </div>
+
 
 <div id="levelup">
 
-    <h1>🎉 升級！選擇天賦</h1>
+<h1>
+🎉 升級！選擇天賦
+</h1>
 
-    <div id="choices"></div>
+<div id="choices"></div>
 
 </div>
+
 
 <div id="pauseMenu">
 
-    <h1>⏸ 遊戲暫停</h1>
+<h1>
+⏸ 遊戲暫停
+</h1>
 
-    <button onclick="resumeGame()">
-        繼續遊戲
-    </button>
+<button onclick="resumeGame()">
+
+繼續遊戲
+
+</button>
 
 </div>
+
+
+<div id="gameOverMenu">
+
+<h1>
+💀 GAME OVER
+</h1>
+
+<button
+onclick="restartGame()">
+
+重新開始
+
+</button>
+
+</div>
+
 
 <canvas id="game"></canvas>
 
 <script>
 
 const canvas =
-document.getElementById("game");
+document.getElementById(
+"game"
+);
 
 const ctx =
-canvas.getContext("2d");
+canvas.getContext(
+"2d"
+);
 
 canvas.width =
 window.innerWidth;
@@ -118,38 +185,41 @@ const keys={};
 
 let paused=false;
 let levelChoosing=false;
+let gameOver=false;
 
 const player={
 
-    x:400,
-    y:300,
+x:400,
+y:300,
 
-    r:18,
+r:18,
 
-    hp:100,
-    maxHp:100,
+hp:100,
+maxHp:100,
 
-    atk:15,
+atk:15,
 
-    speed:4,
+speed:4,
 
-    exp:0,
+exp:0,
 
-    level:1,
+level:1,
 
-    lastAttack:0
+lastAttack:0
+
 };
 
 const pet={
 
-    x:350,
-    y:300,
+x:350,
+y:300,
 
-    r:14,
+r:14,
 
-    atk:10,
+atk:10,
 
-    lastAttack:0
+lastAttack:0
+
 };
 
 const monsters=[];
@@ -159,18 +229,25 @@ const talents=[
 
 {
 name:"力量強化",
+
 desc:"+5攻擊",
+
 apply(){
+
 player.atk+=5;
+
 }
 },
 
 {
 name:"生命強化",
+
 desc:"+30生命",
+
 apply(){
 
 player.maxHp+=30;
+
 player.hp+=30;
 
 }
@@ -178,7 +255,9 @@ player.hp+=30;
 
 {
 name:"疾風步",
+
 desc:"+1速度",
+
 apply(){
 
 player.speed+=1;
@@ -188,7 +267,9 @@ player.speed+=1;
 
 {
 name:"暴龍成長",
+
 desc:"+5寵物攻擊",
+
 apply(){
 
 pet.atk+=5;
@@ -200,25 +281,32 @@ pet.atk+=5;
 
 function spawnMonster(){
 
-let x,y;
+let x;
+let y;
 
 do{
 
 x=
-Math.random()*
+Math.random()
+*
 canvas.width;
 
 y=
-Math.random()*
+Math.random()
+*
 canvas.height;
 
-}
-while(
+}while(
 
 Math.hypot(
+
 x-player.x,
+
 y-player.y
-) < 200
+
+)
+
+< 200
 
 );
 
@@ -233,26 +321,35 @@ hp:40,
 
 maxHp:40,
 
-speed:1+Math.random()
+speed:
+1+Math.random()
 
 });
 
 }
 
-for(let i=0;i<12;i++){
+for(
+let i=0;
+i<12;
+i++
+){
 
 spawnMonster();
 
 }
 
-addEventListener("keydown",e=>{
+addEventListener(
+"keydown",
+e=>{
 
-const key =
+const key=
 e.key.toLowerCase();
 
 keys[key]=true;
 
-if(e.key==="Escape"){
+if(
+e.key==="Escape"
+){
 
 togglePause();
 
@@ -260,7 +357,9 @@ togglePause();
 
 });
 
-addEventListener("keyup",e=>{
+addEventListener(
+"keyup",
+e=>{
 
 keys[
 e.key.toLowerCase()
@@ -270,18 +369,25 @@ e.key.toLowerCase()
 
 function togglePause(){
 
-if(levelChoosing)
+if(
+levelChoosing ||
+gameOver
+)
 return;
 
 paused=!paused;
 
 document
-.getElementById("pauseMenu")
+.getElementById(
+"pauseMenu"
+)
 .style.display=
 
 paused
-? "flex"
-: "none";
+?
+"flex"
+:
+"none";
 
 }
 
@@ -290,7 +396,9 @@ function resumeGame(){
 paused=false;
 
 document
-.getElementById("pauseMenu")
+.getElementById(
+"pauseMenu"
+)
 .style.display=
 "none";
 
@@ -299,18 +407,27 @@ document
 function dist(a,b){
 
 return Math.hypot(
+
 a.x-b.x,
+
 a.y-b.y
+
 );
 
 }
 
-function dmg(x,y,text,color){
+function dmg(
+x,
+y,
+text,
+color
+){
 
 damages.push({
 
 x,
 y,
+
 text,
 color,
 
@@ -322,18 +439,23 @@ life:40
 
 function drawDamage(){
 
-ctx.font =
+ctx.font=
 "18px Arial";
 
-damages.forEach(d=>{
+damages.forEach(
+d=>{
 
-ctx.fillStyle =
+ctx.fillStyle=
 d.color;
 
 ctx.fillText(
+
 d.text,
+
 d.x,
+
 d.y
+
 );
 
 d.y-=1;
@@ -353,7 +475,10 @@ if(
 damages[i].life<=0
 ){
 
-damages.splice(i,1);
+damages.splice(
+i,
+1
+);
 
 }
 
@@ -368,18 +493,21 @@ paused=true;
 levelChoosing=true;
 
 const panel=
+
 document
 .getElementById(
 "levelup"
 );
 
 const choices=
+
 document
 .getElementById(
 "choices"
 );
 
-choices.innerHTML="";
+choices.innerHTML=
+"";
 
 panel.style.display=
 "flex";
@@ -390,24 +518,31 @@ while(
 picks.length<3
 ){
 
-let t=
+const t=
+
 talents[
 Math.floor(
-Math.random()*
+Math.random()
+*
 talents.length
 )
 ];
 
 if(
 !picks.includes(t)
-)
+){
+
 picks.push(t);
 
 }
 
-picks.forEach(t=>{
+}
+
+picks.forEach(
+t=>{
 
 const btn=
+
 document
 .createElement(
 "button"
@@ -436,214 +571,192 @@ levelChoosing=false;
 
 };
 
-choices
-.appendChild(btn);
+choices.appendChild(
+btn
+);
 
 });
 
 }
-
 function levelUp(){
 
-player.level++;
+    player.level++;
 
-player.exp-=100;
+    player.exp-=100;
 
-player.hp=
-player.maxHp;
+    player.hp=
+    player.maxHp;
 
-chooseTalent();
+    chooseTalent();
 
 }
 
 function updatePlayer(){
 
-if(keys["w"])
-player.y-=player.speed;
+    if(keys["w"])
+        player.y-=player.speed;
 
-if(keys["s"])
-player.y+=player.speed;
+    if(keys["s"])
+        player.y+=player.speed;
 
-if(keys["a"])
-player.x-=player.speed;
+    if(keys["a"])
+        player.x-=player.speed;
 
-if(keys["d"])
-player.x+=player.speed;
+    if(keys["d"])
+        player.x+=player.speed;
 
-player.x =
-Math.max(
 
-player.r,
+    player.x=Math.max(
+        player.r,
+        Math.min(
+            canvas.width-player.r,
+            player.x
+        )
+    );
 
-Math.min(
-canvas.width-player.r,
-player.x
-)
-
-);
-
-player.y =
-Math.max(
-
-player.r,
-
-Math.min(
-canvas.height-player.r,
-player.y
-)
-
-);
-
+    player.y=Math.max(
+        player.r,
+        Math.min(
+            canvas.height-player.r,
+            player.y
+        )
+    );
 }
 
 function updatePet(){
 
-pet.x +=
-(player.x-40-pet.x)
-*0.05;
+    pet.x +=
+    (player.x-40-pet.x)
+    *0.05;
 
-pet.y +=
-(player.y-pet.y)
-*0.05;
-
+    pet.y +=
+    (player.y-pet.y)
+    *0.05;
 }
 
 function updateMonsters(){
 
-monsters.forEach(mon=>{
+    monsters.forEach(mon=>{
 
-const dx=
-player.x-mon.x;
+        const dx=
+        player.x-mon.x;
 
-const dy=
-player.y-mon.y;
+        const dy=
+        player.y-mon.y;
 
-const len=
-Math.hypot(
-dx,
-dy
-);
+        const len=
+        Math.hypot(
+            dx,
+            dy
+        );
 
-if(len>0){
+        if(len>0){
 
-mon.x +=
-dx/len*
-mon.speed;
+            mon.x +=
+            dx/len*
+            mon.speed;
 
-mon.y +=
-dy/len*
-mon.speed;
+            mon.y +=
+            dy/len*
+            mon.speed;
+        }
 
-}
+        const now=
+        Date.now();
 
-const now =
-Date.now();
+        if(
+            dist(player,mon)
+            <
+            player.r+mon.r
+        ){
 
-if(
-dist(player,mon)
-<
-player.r+mon.r
-){
+            if(
+                now-player.lastAttack
+                >
+                500
+            ){
 
-if(
-now-player.lastAttack
->
-500
-){
+                mon.hp -=
+                player.atk;
 
-mon.hp -=
-player.atk;
+                dmg(
+                    mon.x,
+                    mon.y,
 
-dmg(
+                    "-"+
+                    player.atk,
 
-mon.x,
-mon.y,
+                    "yellow"
+                );
 
-"-"+
-player.atk,
+                player.lastAttack=
+                now;
+            }
 
-"yellow"
+            player.hp-=0.2;
+        }
 
-);
+        if(
+            dist(pet,mon)
+            <
+            pet.r+mon.r
+        ){
 
-player.lastAttack=
-now;
+            if(
+                now-pet.lastAttack
+                >
+                700
+            ){
 
-}
+                mon.hp -=
+                pet.atk;
 
-player.hp -=
-0.2;
+                dmg(
+                    mon.x,
+                    mon.y,
 
-}
+                    "-"+
+                    pet.atk,
 
-if(
-dist(pet,mon)
-<
-pet.r+mon.r
-){
+                    "#00FFFF"
+                );
 
-if(
-now-pet.lastAttack
->
-700
-){
+                pet.lastAttack=
+                now;
+            }
+        }
 
-mon.hp -=
-pet.atk;
+    });
 
-dmg(
+    for(
+        let i=
+        monsters.length-1;
+        i>=0;
+        i--
+    ){
 
-mon.x,
-mon.y,
+        if(
+            monsters[i].hp<=0
+        ){
 
-"-"+
-pet.atk,
+            monsters.splice(
+                i,
+                1
+            );
 
-"cyan"
+            player.exp+=20;
 
-);
+            spawnMonster();
 
-pet.lastAttack=
-now;
+            if(
+                player.exp>=100
+            ){
 
-}
+                levelUp();
 
-}
-
-});
-
-for(
-let i=
-monsters.length-1;
-i>=0;
-i--
-){
-
-if(
-monsters[i].hp<=0
-){
-
-monsters.splice(
-i,
-1
-);
-
-player.exp+=20;
-
-spawnMonster();
-
-if(
-player.exp>=100
-){
-
-levelUp();
-
-}
-
-}
-
-}
-
+            }
+        }
+    }
 }
 
 function drawCircle(
@@ -653,185 +766,187 @@ r,
 color
 ){
 
-ctx.fillStyle=color;
+    ctx.fillStyle=
+    color;
 
-ctx.beginPath();
+    ctx.beginPath();
 
-ctx.arc(
-x,
-y,
-r,
-0,
-Math.PI*2
-);
+    ctx.arc(
+        x,
+        y,
+        r,
+        0,
+        Math.PI*2
+    );
 
-ctx.fill();
-
+    ctx.fill();
 }
 
 function render(){
 
-ctx.clearRect(
-0,
-0,
-canvas.width,
-canvas.height
-);
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
 
-drawCircle(
+    drawCircle(
 
-player.x,
-player.y,
-player.r,
+        player.x,
+        player.y,
 
-"#FFD700"
+        player.r,
 
-);
+        "#FFD700"
 
-drawCircle(
+    );
 
-pet.x,
-pet.y,
-pet.r,
+    drawCircle(
 
-"#FF4444"
+        pet.x,
+        pet.y,
 
-);
+        pet.r,
 
-monsters.forEach(mon=>{
+        "#FF4444"
 
-drawCircle(
+    );
 
-mon.x,
-mon.y,
-mon.r,
+    monsters.forEach(
+    mon=>{
 
-"#222"
+        drawCircle(
 
-);
+            mon.x,
+            mon.y,
 
-ctx.fillStyle=
-"red";
+            mon.r,
 
-ctx.fillRect(
+            "#222"
 
-mon.x-20,
-mon.y-25,
+        );
 
-40,
-4
+        ctx.fillStyle=
+        "lime";
 
-);
+        ctx.fillRect(
 
-ctx.fillStyle=
-"lime";
+            mon.x-20,
 
-ctx.fillRect(
+            mon.y-25,
 
-mon.x-20,
-mon.y-25,
+            40*
+            (
+                mon.hp/
+                mon.maxHp
+            ),
 
-40*
-(
-mon.hp/
-mon.maxHp
-),
+            4
+        );
 
-4
+    });
 
-);
+    drawDamage();
 
-});
+    if(
+        paused &&
+        !levelChoosing
+    ){
 
-drawDamage();
+        ctx.fillStyle=
+        "white";
 
-if(paused){
+        ctx.font=
+        "50px Arial";
 
-ctx.fillStyle=
-"white";
+        ctx.fillText(
 
-ctx.font=
-"40px Arial";
+            "PAUSED",
 
-ctx.fillText(
+            canvas.width/2-110,
 
-"PAUSED",
+            100
 
-canvas.width/2-90,
-
-80
-
-);
-
+        );
+    }
 }
 
+function updateUI(){
+
+    document
+    .getElementById(
+        "level"
+    )
+    .textContent=
+    player.level;
+
+    document
+    .getElementById(
+        "hp"
+    )
+    .textContent=
+    Math.floor(
+        player.hp
+    );
+
+    document
+    .getElementById(
+        "atk"
+    )
+    .textContent=
+    player.atk;
+
+    document
+    .getElementById(
+        "exp"
+    )
+    .textContent=
+    player.exp;
 }
 
-function ui(){
+function restartGame(){
 
-hp.textContent=
-
-Math.floor(
-player.hp
-);
-
-exp.textContent=
-player.exp;
-
-level.textContent=
-player.level;
-
-atk.textContent=
-player.atk;
+    location.reload();
 
 }
 
 function gameLoop(){
 
-if(
-player.hp<=0
-){
+    if(
+        player.hp<=0 &&
+        !gameOver
+    ){
 
-ctx.fillStyle=
-"white";
+        gameOver=true;
 
-ctx.font=
-"60px Arial";
+        document
+        .getElementById(
+            "gameOverMenu"
+        )
+        .style.display=
+        "flex";
+    }
 
-ctx.fillText(
+    if(
+        !paused &&
+        !gameOver
+    ){
 
-"GAME OVER",
+        updatePlayer();
 
-canvas.width/2-180,
+        updatePet();
 
-canvas.height/2
+        updateMonsters();
+    }
 
-);
+    render();
 
-return;
+    updateUI();
 
-}
-
-if(
-!paused
-){
-
-updatePlayer();
-
-updatePet();
-
-updateMonsters();
-
-}
-
-render();
-
-ui();
-
-requestAnimationFrame(
-gameLoop
-);
-
+    requestAnimationFrame(
+        gameLoop
+    );
 }
 
 gameLoop();
